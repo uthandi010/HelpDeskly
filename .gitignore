@@ -1,0 +1,15 @@
+# Node
+server/node_modules/
+client/node_modules/
+client/dist/
+client/.vite/
+server/.env
+client/.env.local
+
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
