@@ -1,13 +1,15 @@
 const mongoose = require("mongoose");
+const { LIMITS } = require("../utils/validation");
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const organizationSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
+  name: { type: String, required: true, trim: true, maxlength: LIMITS.name },
   slug: {
     type: String,
     required: true,
     unique: true,
+    maxlength: LIMITS.name,
     lowercase: true,
     trim: true,
     validate: {
