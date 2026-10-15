@@ -22,6 +22,11 @@ function errorHandler(err, req, res, next) {
     return res.status(404).json({ message: "Not found." });
   }
 
+  // body-parser errors (malformed JSON, payload too large) carry a 4xx status.
+  if (err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ message: "Invalid request body." });
+  }
+
   console.error(err);
   return res.status(500).json({ message: "Something went wrong on our end." });
 }

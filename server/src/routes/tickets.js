@@ -4,6 +4,7 @@ const { requireAuth } = require("../middleware/auth");
 const Ticket = require("../models/Ticket");
 const TicketMessage = require("../models/TicketMessage");
 const OrganizationMember = require("../models/OrganizationMember");
+const { LIMITS, trimmed, lengthError } = require("../utils/validation");
 
 // Mounted at /api/tickets. Unlike organizationTickets.js, there's no
 // organizationId in the URL here - it's derived from the ticket itself,
@@ -85,7 +86,7 @@ router.patch("/:ticketId", loadTicketWithMembership, async (req, res) => {
     if (assigneeId === null) {
       req.ticket.assigneeId = null;
     } else {
-      if (!mongoose.isValidObjectId(assigneeId)) {
+      if (typeof assigneeId !== "string" || !mongoose.isValidObjectId(assigneeId)) {
         return res.status(422).json({ message: "assigneeId must be a valid id." });
       }
       const assigneeIsMember = await OrganizationMember.findOne({
@@ -105,16 +106,18 @@ router.patch("/:ticketId", loadTicketWithMembership, async (req, res) => {
 });
 
 router.post("/:ticketId/messages", loadTicketWithMembership, async (req, res) => {
-  const { body } = req.body;
-  if (!body?.trim()) {
+  const body = trimmed(req.body.body);
+  if (!body) {
     return res.status(422).json({ message: "Message body is required." });
   }
+  const tooLong = lengthError([["Message", body, LIMITS.message]]);
+  if (tooLong) return res.status(422).json({ message: tooLong });
 
   const message = await TicketMessage.create({
     ticketId: req.ticket._id,
     authorType: "agent",
     authorName: req.user.name,
-    body: body.trim(),
+    body,
   });
 
   // Replying to a resolved/closed ticket reopens it - a common helpdesk

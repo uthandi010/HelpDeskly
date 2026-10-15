@@ -14,7 +14,7 @@ export function PublicSupportPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ id: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ id: string; accessToken: string } | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -42,7 +42,7 @@ export function PublicSupportPage() {
         customerEmail: customerEmail.trim(),
         message: message.trim(),
       });
-      setConfirmation({ id: ticket.id });
+      setConfirmation({ id: ticket.id, accessToken: ticket.accessToken });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not submit your ticket.");
     } finally {
@@ -74,10 +74,10 @@ export function PublicSupportPage() {
             <p>We'll email you at your provided address when there's an update.</p>
             <p className="muted">
               You can check on it anytime at{" "}
-              <Link to={`/tickets/${confirmation.id}/track?email=${encodeURIComponent(customerEmail)}`}>
+              <Link to={`/tickets/${confirmation.id}/track#token=${confirmation.accessToken}`}>
                 this tracking link
               </Link>{" "}
-              - save it, or just remember your ticket id: <code>{confirmation.id}</code>
+              - save it, it is the only way back to this ticket. Your access token: <code>{confirmation.accessToken}</code>
             </p>
           </div>
         ) : (

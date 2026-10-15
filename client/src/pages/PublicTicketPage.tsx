@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Send } from "lucide-react";
 import * as publicApi from "../api/public";
 import type { PublicTicket } from "../api/public";
@@ -8,20 +8,21 @@ import { ApiError } from "../api/client";
 
 export function PublicTicketPage() {
   const { ticketId } = useParams<{ ticketId: string }>();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const id = ticketId!;
 
-  const [email, setEmail] = useState(searchParams.get("email") ?? "");
-  const [emailInput, setEmailInput] = useState(email);
+  // The access token lives in the URL fragment, which is never sent to a server.
+  const [token, setToken] = useState(new URLSearchParams(location.hash.slice(1)).get("token") ?? "");
+  const [tokenInput, setTokenInput] = useState(token);
   const [ticket, setTicket] = useState<PublicTicket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
 
-  async function load(currentEmail: string) {
+  async function load(currentToken: string) {
     setError(null);
     try {
-      const result = await publicApi.getPublicTicket(id, currentEmail);
+      const result = await publicApi.getPublicTicket(id, currentToken);
       setTicket(result);
     } catch (err) {
       setTicket(null);
@@ -30,17 +31,17 @@ export function PublicTicketPage() {
   }
 
   useEffect(() => {
-    if (email) {
-      load(email);
+    if (token) {
+      load(token);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   function handleLookup(event: FormEvent) {
     event.preventDefault();
-    if (!emailInput.trim()) return;
-    setEmail(emailInput.trim());
-    load(emailInput.trim());
+    if (!tokenInput.trim()) return;
+    setToken(tokenInput.trim());
+    load(tokenInput.trim());
   }
 
   async function handleReply(event: FormEvent) {
@@ -49,9 +50,9 @@ export function PublicTicketPage() {
 
     setSending(true);
     try {
-      await publicApi.replyToTicket(id, email, reply.trim());
+      await publicApi.replyToTicket(id, token, reply.trim());
       setReply("");
-      await load(email);
+      await load(token);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not send that reply.");
     } finally {
@@ -69,8 +70,8 @@ export function PublicTicketPage() {
         {!ticket && (
           <form className="public-form" onSubmit={handleLookup}>
             <label className="field">
-              <span>Your email</span>
-              <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
+              <span>Your access token</span>
+              <input type="text" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} />
             </label>
             {error && (
               <div className="form-error" role="alert">
