@@ -13,8 +13,18 @@ shared dashboard with real metrics.
 - **Ticket queue** — filter by status, see who's assigned, reassign, change priority
 - **Threaded replies** — every ticket is a conversation; an agent or the customer replying to a
   resolved/closed ticket automatically reopens it, a common helpdesk convention
-- **No-account customer access** — a customer can open a ticket, then check on it and reply later
-  using just the ticket link and the email they submitted it with (never by ticket ID alone)
+- **No-account customer access** — creating a ticket returns a random per-ticket access token
+  (only its hash is stored). A customer needs the ticket link/ID plus that token, sent in the
+  `X-Ticket-Token` header, to view or reply; the ticket ID or email alone never works.
+  Tickets created before this change have no token and are no longer reachable publicly.
+- **Member management** — admins can change a member's role or remove them; the organization owner
+  is protected from demotion and removal
+- **Ticket search and paging** — `GET .../tickets` accepts `q`, `status`, `priority`, `assigneeId`,
+  `page`, and `limit` (default 50, max 100); the body stays an array and totals are in the
+  `X-Total-Count` / `X-Page` / `X-Limit` / `X-Total-Pages` headers
+- **Hardening** — `helmet` headers, `express-rate-limit` (strict on login/register and public
+  ticket creation/lookup, looser elsewhere; off under `NODE_ENV=test`), string-only input
+  validation (422, not 500) and length caps on names, subjects, and messages
 - **Dashboard metrics** — ticket volume over the last 30 days, plus a breakdown by status and
   priority, charted
 
@@ -25,7 +35,7 @@ shared dashboard with real metrics.
 | API | Node.js, Express 5, MongoDB (Mongoose) |
 | Auth | JWT (`jsonwebtoken`), `bcryptjs` for password hashing |
 | Client | React 19 + TypeScript, React Router, Recharts |
-| Tests | Node's built-in test runner + Supertest (37 examples), Vitest + Testing Library (14 examples) |
+| Tests | Node's built-in test runner + Supertest (60 examples), Vitest + Testing Library (16 examples) |
 
 No paid services are required to run this locally — just a local MongoDB instance.
 
@@ -48,6 +58,9 @@ cd server
 npm install
 npm start
 ```
+
+In production (`NODE_ENV=production`) you must set `JWT_SECRET` to a unique value; the server
+refuses to start without it or with the built-in development default. See `server/.env.example`.
 
 Run the backend tests (uses a separate `helpdeskly_test` database, wiped between test files):
 

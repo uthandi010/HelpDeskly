@@ -8,7 +8,7 @@ export function getPublicOrganization(slug: string): Promise<PublicProfile> {
 export function submitTicket(
   slug: string,
   input: { subject: string; customerName: string; customerEmail: string; message: string }
-): Promise<{ id: string; subject: string; status: string }> {
+): Promise<{ id: string; subject: string; status: string; accessToken: string }> {
   return apiRequest(`/api/public/organizations/${slug}/tickets`, { method: "POST", body: input, auth: false });
 }
 
@@ -28,16 +28,20 @@ export interface PublicTicket {
   messages: PublicMessage[];
 }
 
-export function getPublicTicket(ticketId: string, email: string): Promise<PublicTicket> {
-  const params = new URLSearchParams({ email });
-  return apiRequest<PublicTicket>(`/api/public/tickets/${ticketId}?${params}`, { auth: false });
+// The access token travels in a header, never in the URL query string.
+function tokenHeaders(token: string): Record<string, string> {
+  return { "X-Ticket-Token": token };
 }
 
-export function replyToTicket(ticketId: string, email: string, body: string): Promise<PublicMessage> {
-  const params = new URLSearchParams({ email });
-  return apiRequest<PublicMessage>(`/api/public/tickets/${ticketId}/messages?${params}`, {
+export function getPublicTicket(ticketId: string, token: string): Promise<PublicTicket> {
+  return apiRequest<PublicTicket>(`/api/public/tickets/${ticketId}`, { auth: false, headers: tokenHeaders(token) });
+}
+
+export function replyToTicket(ticketId: string, token: string, body: string): Promise<PublicMessage> {
+  return apiRequest<PublicMessage>(`/api/public/tickets/${ticketId}/messages`, {
     method: "POST",
     body: { body },
     auth: false,
+    headers: tokenHeaders(token),
   });
 }
